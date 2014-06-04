@@ -43,26 +43,164 @@ module.exports = exports = function (Hunt, parameters) {
 
 
       router.use(function (request, response, next) {
-        if (request.user) {
-          if (request.permissions.user.canAccess) {
-            next();
-          } else {
-            var canAccess = false;
+        for (var x in parameters.permissions) {
+          if (request.user && request.user.root === true && x === 'root') {
+            request.restPermissions = parameters.permissions.root;
+            return next();
+          }
 
-            if (request.user.root) { //root is root
-              canAccess = true;
+          if (request.user && request.user.roles && request.user.roles[x] === true) {
+            request.restPermissions = parameters.permissions[x];
+            return next();
+          }
+
+          if (request.user && x === 'user') {
+            request.restPermissions = parameters.permissions.user;
+            return next();
+          }
+
+          if (x === 'nobody' && !request.user) {
+            if (parameters.permissions.nobody.canAccess) {
+              request.restPermissions = parameters.permissions.nobody;
+              return next();
             } else {
-              for (var x in parameters.permissions) {
-                if (['nobody', 'user', 'root'].indexOf(x) === -1) {
-                  if (request.user.roles[x] && !canAccess) {
-                    canAccess = parameters.permissions[x].canAccess ? true : false;
+              response.status(401);
+              response.json({
+                'status': 'Error',
+                'errors': [
+                  {
+                    'code': 401,
+                    'message': 'Authorization required!'
+                  }
+                ]
+              });
+              return;
+            }
+          }
+
+          response.status(403);
+          response.json({
+            'status': 'Error',
+            'errors': [
+              {
+                'code': 403,
+                'message': 'Access denied!'
+              }
+            ]
+          });
+        }
+      });
+
+      router.get('/', function (request, response) {
+        var filter = request.query,
+          page = (request.query.page && request.query.page > 0) || 1,
+          sort = request.query.sort || '-_id',
+          itemsPerPage = (request.query.itemsPerPage && request.query.itemsPerPage > 0) || 10,
+          skip = page * itemsPerPage,
+          limit = itemsPerPage;
+
+        request.restPermissions.filter(filter);
+
+        core.async.parallel({
+          'data': function (cb) {
+            request.model[parameters.modelName]
+              .find(filter)
+              .skip(skip)
+              .limit(limit)
+              .sort(sort)
+              .exec(function (error, itemsFound) {
+                if (error) {
+                  throw error;
+                } else {
+                  cb(null, itemsFound.map(function (item) {
+                    var ret = {};
+                    request.restPermissions.fieldsToShow.map(function (field) {
+                      ret[field] = item.get('' + field); //to respect virtuals
+                    });
+                    return ret;
+                  }));
+                }
+              });
+          },
+          'metadata': function (cb) {
+            request.model[parameters.modelName]
+              .count(filter)
+              .exec(function (error, itemsCount) {
+                if (error) {
+                  cb(error);
+                } else {
+                  cb(null, {
+                    'page': page,
+                    'itemsPerPage': itemsPerPage,
+                    'numberOfPages': Math.floor(itemsCount / itemsPerPage),
+                    'count': itemsCount
+                  });
+                }
+              });
+          }
+        }, function (error, retObj) {
+          response.json(retObj);
+        });
+      });
+
+      router.get('/:id', function (request, response) {
+        var filter = {};
+        request.restPermissions.filter(filter);
+
+        request.model[parameters.modelName].findById(request.params.id, function (error, itemFound) {
+          if (error) {
+            throw error;
+          } else {
+            if (itemFound) {
+              request.restPermissions.canRead(request.user, itemFound, function (error, canRead) {
+                if (error) {
+                  throw error;
+                } else {
+                  if (canRead) {
+                    response.status(200);
+                    var ret = {};
+                    request.restPermissions.fieldsToShow.map(function (field) {
+                      ret[field] = itemFound.get('' + field); //to respect virtuals
+                    });
+                    response.json({'data': ret})
+                  } else {
+                    response.status(403);
+                    response.json({
+                      'status': 'Error',
+                      'errors': [
+                        {
+                          'code': 403,
+                          'message': 'Access denied!'
+                        }
+                      ]
+                    });
                   }
                 }
-              }
+              });
+            } else {
+              response.status(404);
+              response.json({
+                'status': 'Error',
+                'errors': [
+                  {
+                    'code': 404,
+                    'message': 'Item of kind "' + parameters.modelName + '" with ID of "' + request.params.id + '" do not exists!'
+                  }
+                ]
+              });
             }
+          }
+        });
+      });
 
-            if (canAccess) {
-              next();
+      router.post('/', function (request, response) {
+        request.restPermissions.canCreate(request.user, function(error, canCreate){
+          if(error){
+            throw error;
+          } else {
+            if(canCreate){
+              //todo
+
             } else {
               response.status(403);
               response.json({
@@ -76,80 +214,36 @@ module.exports = exports = function (Hunt, parameters) {
               });
             }
           }
-        } else {
-          if (parameters.permissions.nobody.canAccess) {
-            next();
-          } else {
-            response.status(401);
-            response.json({
-              'status': 'Error',
-              'errors': [
-                {
-                  'code': 401,
-                  'message': 'Authorization required!'
-                }
-              ]
-            });
-          }
-        }
-      });
-
-      router.get('/', function(request,response){
-        var filter = request.query,
-          page = (request.query.page && request.query.page>0) || 1,
-          sort = request.query.sort || '-_id',
-          itemsPerPage  = (request.query.itemsPerPage && request.query.itemsPerPage>0) || 10,
-          skip = page * itemsPerPage,
-          limit = itemsPerPage;
-
-        parameters.filter(filter);
-
-        core.async.parallel({
-          'data': function(cb){
-            request.model[parameters.modelName]
-              .find(filter)
-              .skip(skip)
-              .limit(limit)
-              .sort(sort)
-              .exec(function(error, itemsFound){
-                if(error){
-                  throw error;
-                } else {
-                  itemsFound.map(function(item){
-                    
-
-                  });
-                }
-              });
-          },
-          'metadata': function(cb){
-            request.model[parameters.modelName]
-              .count(filter)
-              .exec(function(error, itemsCount){
-                if(error){
-                  cb(error);
-                } else {
-                  cb(null, {
-                    'page':page,
-                    'itemsPerPage':itemsPerPage,
-                    'numberOfPages': Math.floor(itemsCount/itemsPerPage),
-                    'count':itemsCount
-                  });
-                }
-              });
-          }
-        }, function(error, retObj){
-          response.json(retObj);
         });
       });
 
-      router.get('/:id', function(request,response){});
+      router.put('/:id', function (request, response) {
+      });
 
-      router.post('/', function(request,response){});
+      router.delete('/:id', function (request, response) {
+      });
 
-      router.put('/:id', function(request,response){});
-
-      router.delete('/:id', function(request,response){});
+      router.use(function (error, request, response, next) {
+//http://mongoosejs.com/docs/validation.html
+        if (error.name === 'ValidationError') {
+          response.status(400);
+          var errs = [];
+          for (var x in error.errors) {
+            errs.push({
+              'code': 400,
+              'message': error.errors[x].message,
+              'field': error.errors[x].path,
+              'value': error.errors[x].value
+            });
+          }
+          response.json({
+            "status": "Error",
+            "errors": errs
+          });
+        } else {
+          next(error); // ;-)
+        }
+      });
 
       core.app.use(parameters.mountPoint, router);
     });
