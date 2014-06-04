@@ -1,0 +1,22 @@
+{
+  "name": "hrw",
+  "version": "0.0.1",
+  "description": "HuntJS RESTfull API for mongoosejs models",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@bitbucket.org:oselot/hrw.git"
+  },
+  "keywords": [
+    "Huntjs",
+    "rest",
+    "restfull",
+    "mongoose",
+    "api"
+  ],
+  "author": "Anatolij Nowal",
+  "license": "MIT"
+}
