@@ -16,7 +16,7 @@ module.exports = exports = function (Hunt, parameters) {
     for (var x in parameters.permissions) {
       if (parameters.permissions.hasOwnProperty(x)) {
         var perm = parameters.permissions[x];
-        assert.fail(perm.canAccess === undefined, 'HRW: permissions.' + x + '.canAccess is not set!');
+        assert.ok(perm.canAccess !== undefined, 'HRW: permissions.' + x + '.canAccess is not set!');
         if (perm.canAccess) {
           assert.ok(Array.isArray(perm.fieldsToShow), 'HRW: permissions.' + x + '.fieldsToShow is not array of fields!');
           assert.ok(Array.isArray(perm.fieldsToRead), 'HRW: permissions.' + x + '.fieldsToRead is not array of fields!');
@@ -44,53 +44,71 @@ module.exports = exports = function (Hunt, parameters) {
 
 //access control middleware
       router.use(function (request, response, next) {
+        var whatsNext;
+
         for (var x in parameters.permissions) {
           if (parameters.permissions.hasOwnProperty(x)) {
             if (request.user && request.user.root === true && x === 'root') {
               request.restPermissions = parameters.permissions.root;
-              return next();
+              whatsNext='next';
             }
 
             if (request.user && request.user.roles && request.user.roles[x] === true) {
               request.restPermissions = parameters.permissions[x];
-              return next();
+              whatsNext='next';
             }
 
             if (request.user && x === 'user') {
               request.restPermissions = parameters.permissions.user;
-              return next();
+              whatsNext='next';
             }
 
             if (x === 'nobody' && !request.user) {
               if (parameters.permissions.nobody.canAccess) {
                 request.restPermissions = parameters.permissions.nobody;
-                return next();
+                whatsNext = 'next';
               } else {
-                response.status(401);
-                response.json({
-                  'status': 'Error',
-                  'errors': [
-                    {
-                      'code': 401,
-                      'message': 'Authorization required!'
-                    }
-                  ]
-                });
-                return;
+                whatsNext = 401;
               }
             }
-
+          }
+        }
+        switch(whatsNext) {
+          case 'next':
+            next();
+          break;
+          case 403:
             response.status(403);
+            response.json({
+              'status': 'Error',
+              'errors': [ {
+              'code': 403,
+              'message': 'Access denied!'
+              } ]
+            });
+          break;
+          case 401:
+            response.status(401);
             response.json({
               'status': 'Error',
               'errors': [
                 {
-                  'code': 403,
-                  'message': 'Access denied!'
+                  'code': 401,
+                  'message': 'Authorization required!'
                 }
               ]
             });
-          }
+          default:
+            response.status(500);
+            response.json({
+              'status': 'Error',
+              'errors': [
+                {
+                  'code': 500,
+                  'message': 'Internal server error!'
+                }
+              ]
+            });
         }
       });
 
@@ -100,10 +118,13 @@ module.exports = exports = function (Hunt, parameters) {
           page = (request.query.page && request.query.page > 0) || 1,
           sort = request.query.sort || '-_id',
           itemsPerPage = (request.query.itemsPerPage && request.query.itemsPerPage > 0) || 10,
-          skip = page * itemsPerPage,
+          skip = (page - 1) * itemsPerPage,
           limit = itemsPerPage;
 
-        request.restPermissions.filter(filter);
+        request.restPermissions.filter(filter, request.user);
+
+        console.log('permissions', request.restPermissions);
+        console.log('filter', filter);
 
         core.async.parallel({
           'status': function (cb) {
@@ -124,6 +145,7 @@ module.exports = exports = function (Hunt, parameters) {
                     request.restPermissions.fieldsToShow.map(function (field) {
                       ret[field] = item.get('' + field); //to respect virtuals
                     });
+                    ret.id = item.id;
                     return ret;
                   }));
                 }
@@ -146,7 +168,11 @@ module.exports = exports = function (Hunt, parameters) {
               });
           }
         }, function (error, retObj) {
-          response.json(retObj);
+          if(error) {
+            throw error;
+          } else {
+            response.json(retObj);
+          }
         });
       });
 //read one
@@ -169,6 +195,7 @@ module.exports = exports = function (Hunt, parameters) {
                     request.restPermissions.fieldsToRead.map(function (field) {
                       ret[field] = itemFound.get('' + field); //to respect virtuals
                     });
+                    ret.id = itemFound.id;
                     response.json({'status': 'Ok', 'data': ret})
                   } else {
                     response.status(403);
@@ -201,6 +228,7 @@ module.exports = exports = function (Hunt, parameters) {
       });
 //create
       router.post('/', function (request, response) {
+        console.log(request.restPermissions);
         request.restPermissions.canCreate(request.user, function (error, canCreate) {
           if (error) {
             throw error;
