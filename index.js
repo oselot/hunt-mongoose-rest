@@ -1,5 +1,5 @@
 var assert = require('assert');
-
+//todo - think, that `canRead` and `filter` do the same?
 module.exports = exports = function (Hunt, parameters) {
   if (parameters.modelName && Hunt.model[parameters.modelName]) {
 
@@ -15,6 +15,7 @@ module.exports = exports = function (Hunt, parameters) {
       assert.fail(perm.canAccess === undefined, 'HRW: permissions.' + x + '.canAccess is not set!');
       if (perm.canAccess) {
         assert.ok(Array.isArray(perm.fieldsToShow), 'HRW: permissions.' + x + '.fieldsToShow is not array of fields!');
+        assert.ok(Array.isArray(perm.fieldsToRead), 'HRW: permissions.' + x + '.fieldsToRead is not array of fields!');
         assert.ok(Array.isArray(perm.fieldsToEdit), 'HRW: permissions.' + x + '.fieldsToEdit is not array of fields!');
 
         if (perm.filter !== undefined) {
@@ -26,7 +27,7 @@ module.exports = exports = function (Hunt, parameters) {
 
         assert.ok(typeof perm.canCreate === "function", 'HRW: permissions.' + x + '.canCreate is not a function(user, cb){} !');
 
-        ['canRead', 'canDelete', 'preSave', 'postSave'].map(function (f) {
+        ['canRead', 'canUpdate', 'canDelete', 'preSave', 'postSave'].map(function (f) {
           assert.ok(typeof perm[f] === "function", 'HRW: permissions.' + x + '.' + f + ' is not a function(user, item, cb){} !');
         });
 
@@ -44,53 +45,56 @@ module.exports = exports = function (Hunt, parameters) {
 
       router.use(function (request, response, next) {
         for (var x in parameters.permissions) {
-          if (request.user && request.user.root === true && x === 'root') {
-            request.restPermissions = parameters.permissions.root;
-            return next();
-          }
-
-          if (request.user && request.user.roles && request.user.roles[x] === true) {
-            request.restPermissions = parameters.permissions[x];
-            return next();
-          }
-
-          if (request.user && x === 'user') {
-            request.restPermissions = parameters.permissions.user;
-            return next();
-          }
-
-          if (x === 'nobody' && !request.user) {
-            if (parameters.permissions.nobody.canAccess) {
-              request.restPermissions = parameters.permissions.nobody;
+          if (parameters.permissions.hasOwnProperty(x)) {
+            if (request.user && request.user.root === true && x === 'root') {
+              request.restPermissions = parameters.permissions.root;
               return next();
-            } else {
-              response.status(401);
-              response.json({
-                'status': 'Error',
-                'errors': [
-                  {
-                    'code': 401,
-                    'message': 'Authorization required!'
-                  }
-                ]
-              });
-              return;
             }
-          }
 
-          response.status(403);
-          response.json({
-            'status': 'Error',
-            'errors': [
-              {
-                'code': 403,
-                'message': 'Access denied!'
+            if (request.user && request.user.roles && request.user.roles[x] === true) {
+              request.restPermissions = parameters.permissions[x];
+              return next();
+            }
+
+            if (request.user && x === 'user') {
+              request.restPermissions = parameters.permissions.user;
+              return next();
+            }
+
+            if (x === 'nobody' && !request.user) {
+              if (parameters.permissions.nobody.canAccess) {
+                request.restPermissions = parameters.permissions.nobody;
+                return next();
+              } else {
+                response.status(401);
+                response.json({
+                  'status': 'Error',
+                  'errors': [
+                    {
+                      'code': 401,
+                      'message': 'Authorization required!'
+                    }
+                  ]
+                });
+                return;
               }
-            ]
-          });
+            }
+
+            response.status(403);
+            response.json({
+              'status': 'Error',
+              'errors': [
+                {
+                  'code': 403,
+                  'message': 'Access denied!'
+                }
+              ]
+            });
+          }
         }
       });
 
+//list all
       router.get('/', function (request, response) {
         var filter = request.query,
           page = (request.query.page && request.query.page > 0) || 1,
@@ -142,7 +146,7 @@ module.exports = exports = function (Hunt, parameters) {
           response.json(retObj);
         });
       });
-
+//read one
       router.get('/:id', function (request, response) {
         var filter = {};
         request.restPermissions.filter(filter);
@@ -159,7 +163,7 @@ module.exports = exports = function (Hunt, parameters) {
                   if (canRead) {
                     response.status(200);
                     var ret = {};
-                    request.restPermissions.fieldsToShow.map(function (field) {
+                    request.restPermissions.fieldsToRead.map(function (field) {
                       ret[field] = itemFound.get('' + field); //to respect virtuals
                     });
                     response.json({'data': ret})
@@ -192,15 +196,14 @@ module.exports = exports = function (Hunt, parameters) {
           }
         });
       });
-
+//create
       router.post('/', function (request, response) {
-        request.restPermissions.canCreate(request.user, function(error, canCreate){
-          if(error){
+        request.restPermissions.canCreate(request.user, function (error, canCreate) {
+          if (error) {
             throw error;
           } else {
-            if(canCreate){
+            if (canCreate) {
               //todo
-
             } else {
               response.status(403);
               response.json({
@@ -218,9 +221,74 @@ module.exports = exports = function (Hunt, parameters) {
       });
 
       router.put('/:id', function (request, response) {
+        request.model[parameters.modelName].findById(request.params.id, function (error, itemFound) {
+          if (error) {
+            throw error;
+          } else {
+            if (itemFound) {
+              request.restPermissions.canUpdate(request.user, itemFound, function (error, canUpdate) {
+                if (error) {
+                  throw error;
+                } else {
+                  if(canUpdate){
+                    request.restPermissions.fieldsToEdit.map(function (field) {
+                      itemFound.set('' + field); //to respect virtuals
+                    });
+
+                    core.async.series([
+                      function(cb){
+                        request.restPermissions.preSave(request.user, itemFound, cb);
+                      },
+                      function(cb){
+                        itemFound.save(cb);
+                      },
+                      function(cb){
+                        request.postSave.preSave(request.user, itemFound, cb);
+                      }
+                    ], function(error, itemSaved){
+                      if(error){
+                        throw error;
+                      } else {
+                        response.status(202);
+                        var ret = {};
+                        request.restPermissions.fieldsToRead.map(function (field) {
+                          ret[field] = itemSaved.get('' + field); //to respect virtuals
+                        });
+                        response.json({'data': ret})
+                      }
+                    });
+                  } else {
+                    response.status(403);
+                    response.json({
+                      'status': 'Error',
+                      'errors': [
+                        {
+                          'code': 403,
+                          'message': 'Access denied!'
+                        }
+                      ]
+                    });
+                  }
+                }
+              });
+            } else {
+              response.status(404);
+              response.json({
+                'status': 'Error',
+                'errors': [
+                  {
+                    'code': 404,
+                    'message': 'Item of kind "' + parameters.modelName + '" with ID of "' + request.params.id + '" do not exists!'
+                  }
+                ]
+              });
+            }
+          }
+        });
       });
 
       router.delete('/:id', function (request, response) {
+        //todo
       });
 
       router.use(function (error, request, response, next) {

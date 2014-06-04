@@ -17,12 +17,16 @@ Parameters
     },
     "user":{
         "canAccess":true,
-        "fieldsToShow":['name','notes'],
-        "fieldsToEdit":['notes'],
+        "fieldsToShow":['name','notes'], //fields to show on /api/v1/:modelName
         "filter": function(parameters, user) {
            parameters.owner = user.id
-        }
+        },
+        "fieldsToRead":['name','notes'], //fields to show on /api/v1/:modelName/:id
+        "fieldsToEdit":['notes'], //fields to be acceppted on POST /api/v1/:modelName or PUT /api/v1/:modelName/:id
         "canCreate": function(user, cb){
+          cb(null, false);
+        },
+        "canUpdate": function(user, item, cb){
           cb(null, false);
         },
        "canRead":function(user, item, cb){
@@ -44,6 +48,7 @@ Parameters
     "root":{
        "canAccess":false,
        "fieldsToShow":['name','notes','owner'],
+       "fieldsToRead":['name','notes','owner'],
        "fieldsToEdit":['name','notes','owner'],
        "filter": false,
        "canCreate": function(user, cb){
