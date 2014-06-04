@@ -9,7 +9,8 @@
   },
   "os" : [ "linux" ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start":"node example/index.js",
+    "test": "./node_modules/.bin/mocha --reporter spec"
   },
   "repository": {
     "type": "git",
