@@ -46,7 +46,7 @@ Parameters
         },
     },
     "root":{
-       "canAccess":false,
+       "canAccess":false, //it is ignored for root
        "fieldsToShow":['name','notes','owner'],
        "fieldsToRead":['name','notes','owner'],
        "fieldsToEdit":['name','notes','owner'],

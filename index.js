@@ -1,5 +1,8 @@
 var assert = require('assert');
 //todo - think, that `canRead` and `filter` do the same?
+
+
+
 module.exports = exports = function (Hunt, parameters) {
   if (parameters.modelName && Hunt.model[parameters.modelName]) {
 
@@ -11,28 +14,28 @@ module.exports = exports = function (Hunt, parameters) {
     assert.ok(parameters.permissions.root, 'HRW: permissions.root have to be set!');
 
     for (var x in parameters.permissions) {
-      var perm = parameters.permissions[x];
-      assert.fail(perm.canAccess === undefined, 'HRW: permissions.' + x + '.canAccess is not set!');
-      if (perm.canAccess) {
-        assert.ok(Array.isArray(perm.fieldsToShow), 'HRW: permissions.' + x + '.fieldsToShow is not array of fields!');
-        assert.ok(Array.isArray(perm.fieldsToRead), 'HRW: permissions.' + x + '.fieldsToRead is not array of fields!');
-        assert.ok(Array.isArray(perm.fieldsToEdit), 'HRW: permissions.' + x + '.fieldsToEdit is not array of fields!');
+      if (parameters.permissions.hasOwnProperty(x)) {
+        var perm = parameters.permissions[x];
+        assert.fail(perm.canAccess === undefined, 'HRW: permissions.' + x + '.canAccess is not set!');
+        if (perm.canAccess) {
+          assert.ok(Array.isArray(perm.fieldsToShow), 'HRW: permissions.' + x + '.fieldsToShow is not array of fields!');
+          assert.ok(Array.isArray(perm.fieldsToRead), 'HRW: permissions.' + x + '.fieldsToRead is not array of fields!');
+          assert.ok(Array.isArray(perm.fieldsToEdit), 'HRW: permissions.' + x + '.fieldsToEdit is not array of fields!');
 
-        if (perm.filter !== undefined) {
-          assert.ok(typeof perm.filter === "function", 'HRW: permissions.' + x + '.filter is not a function(parameters, user){} !');
-        } else {
-          perm.filter = function (parameters, user) {/* it is ok) */
-          };
+          if (perm.filter !== undefined) {
+            assert.ok(typeof perm.filter === "function", 'HRW: permissions.' + x + '.filter is not a function(parameters, user){} !');
+          } else {
+            perm.filter = function (parameters, user) {/* it is ok) */
+            };
+          }
+
+          assert.ok(typeof perm.canCreate === "function", 'HRW: permissions.' + x + '.canCreate is not a function(user, cb){} !');
+
+          ['canRead', 'canUpdate', 'canDelete', 'preSave', 'postSave'].map(function (f) {
+            assert.ok(typeof perm[f] === "function", 'HRW: permissions.' + x + '.' + f + ' is not a function(user, item, cb){} !');
+          });
+
         }
-
-        assert.ok(typeof perm.canCreate === "function", 'HRW: permissions.' + x + '.canCreate is not a function(user, cb){} !');
-
-        ['canRead', 'canUpdate', 'canDelete', 'preSave', 'postSave'].map(function (f) {
-          assert.ok(typeof perm[f] === "function", 'HRW: permissions.' + x + '.' + f + ' is not a function(user, item, cb){} !');
-        });
-
-      } else {
-        //who cares?
       }
     }
 
@@ -40,9 +43,6 @@ module.exports = exports = function (Hunt, parameters) {
       var router = core.express.Router();
 
 //access control middleware
-//todo think on fieldsToShow, fieldsToEdit, filter etc importing to request for each role
-
-
       router.use(function (request, response, next) {
         for (var x in parameters.permissions) {
           if (parameters.permissions.hasOwnProperty(x)) {
@@ -106,6 +106,9 @@ module.exports = exports = function (Hunt, parameters) {
         request.restPermissions.filter(filter);
 
         core.async.parallel({
+          'status': function (cb) {
+            cb(null, 'Ok');
+          },
           'data': function (cb) {
             request.model[parameters.modelName]
               .find(filter)
@@ -166,7 +169,7 @@ module.exports = exports = function (Hunt, parameters) {
                     request.restPermissions.fieldsToRead.map(function (field) {
                       ret[field] = itemFound.get('' + field); //to respect virtuals
                     });
-                    response.json({'data': ret})
+                    response.json({'status': 'Ok', 'data': ret})
                   } else {
                     response.status(403);
                     response.json({
@@ -203,7 +206,34 @@ module.exports = exports = function (Hunt, parameters) {
             throw error;
           } else {
             if (canCreate) {
-              //todo
+              var itemToBeCreated = new request.model[parameters.modelName];
+
+              request.restPermissions.fieldsToEdit.map(function (field) {
+                itemToBeCreated.set('' + field); //to respect virtuals
+              });
+
+              core.async.series([
+                function (cb) {
+                  request.restPermissions.preSave(request.user, itemToBeCreated, cb);
+                },
+                function (cb) {
+                  itemFound.save(cb);
+                },
+                function (cb) {
+                  request.postSave.preSave(request.user, itemToBeCreated, cb);
+                }
+              ], function (error) {
+                if (error) {
+                  throw error;
+                } else {
+                  response.status(201);
+                  var ret = {};
+                  request.restPermissions.fieldsToRead.map(function (field) {
+                    ret[field] = itemToBeCreated.get('' + field); //to respect virtuals
+                  });
+                  response.json({'status': 'created', 'data': ret})
+                }
+              });
             } else {
               response.status(403);
               response.json({
@@ -230,29 +260,29 @@ module.exports = exports = function (Hunt, parameters) {
                 if (error) {
                   throw error;
                 } else {
-                  if(canUpdate){
+                  if (canUpdate) {
                     request.restPermissions.fieldsToEdit.map(function (field) {
                       itemFound.set('' + field); //to respect virtuals
                     });
 
                     core.async.series([
-                      function(cb){
+                      function (cb) {
                         request.restPermissions.preSave(request.user, itemFound, cb);
                       },
-                      function(cb){
+                      function (cb) {
                         itemFound.save(cb);
                       },
-                      function(cb){
+                      function (cb) {
                         request.postSave.preSave(request.user, itemFound, cb);
                       }
-                    ], function(error, itemSaved){
-                      if(error){
+                    ], function (error) {
+                      if (error) {
                         throw error;
                       } else {
                         response.status(202);
                         var ret = {};
                         request.restPermissions.fieldsToRead.map(function (field) {
-                          ret[field] = itemSaved.get('' + field); //to respect virtuals
+                          ret[field] = itemFound.get('' + field); //to respect virtuals
                         });
                         response.json({'data': ret})
                       }
@@ -288,7 +318,54 @@ module.exports = exports = function (Hunt, parameters) {
       });
 
       router.delete('/:id', function (request, response) {
-        //todo
+        request.model[parameters.modelName].findById(request.params.id, function (error, itemFound) {
+          if (error) {
+            throw error;
+          } else {
+            if (itemFound) {
+              request.restPermissions.canDelete(request.user, itemFound, function (error, canDelete) {
+                if (error) {
+                  throw error;
+                } else {
+                  if (canDelete) {
+                    request.model[parameters.modelName].remove({'id': itemFound.id}, function (error) {
+                      if (error) {
+                        throw error;
+                      } else {
+                        response.status(202);
+                        response.json({
+                          'status': 'deleted'
+                        });
+                      }
+                    });
+                  } else {
+                    response.status(403);
+                    response.json({
+                      'status': 'Error',
+                      'errors': [
+                        {
+                          'code': 403,
+                          'message': 'Access denied!'
+                        }
+                      ]
+                    });
+                  }
+                }
+              });
+            } else {
+              response.status(404);
+              response.json({
+                'status': 'Error',
+                'errors': [
+                  {
+                    'code': 404,
+                    'message': 'Item of kind "' + parameters.modelName + '" with ID of "' + request.params.id + '" do not exists!'
+                  }
+                ]
+              });
+            }
+          }
+        });
       });
 
       router.use(function (error, request, response, next) {
@@ -305,8 +382,8 @@ module.exports = exports = function (Hunt, parameters) {
             });
           }
           response.json({
-            "status": "Error",
-            "errors": errs
+            'status': 'Error',
+            'errors': errs
           });
         } else {
           next(error); // ;-)
