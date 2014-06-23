@@ -2,7 +2,8 @@ Config
 ==============================
 
 Abstract Mongoose to REST interface CRUD. In MVC paradigm  this module is a way
-to generate view (as JSON object) and controller for this particular model
+to generate view (as JSON object) and controller for this particular model.
+It is nodejs implementation of awesome module of (http://www.symfony-project.org/plugins/sfDoctrineRestGeneratorPlugin)
 
 Parameters
 
