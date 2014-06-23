@@ -1,5 +1,8 @@
 Config
 ==============================
+
+Abstract Mongoose to REST interface CRUD
+
 Parameters
 
 -  `mountPoint` - string, see [http://expressjs.com/4x/api.html#router](http://expressjs.com/4x/api.html#router)
