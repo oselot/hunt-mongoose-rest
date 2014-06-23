@@ -15,6 +15,8 @@ Model requirements
 ==============================
 
 For example, we have standard [http://mongoosejs.com/](mongoosejs) model of `Articles`
+
+
 1) The model have to be dependency injected to request.model.Article. It is like this
 
 ```javascript
