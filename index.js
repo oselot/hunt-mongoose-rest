@@ -1,8 +1,6 @@
 var assert = require('assert');
 //todo - think, that `canRead` and `filter` do the same?
 
-
-
 module.exports = exports = function (Hunt, parameters) {
   if (parameters.modelName && Hunt.model[parameters.modelName]) {
 
