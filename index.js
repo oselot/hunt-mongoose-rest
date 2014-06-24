@@ -11,6 +11,9 @@ module.exports = exports = function (Hunt, parameters) {
       require('./lib/update.js')(core, parameters, router);
       require('./lib/delete.js')(core, parameters, router);
 
+      require('./lib/callInstanceMethod.js')(core, parameters, router); //todo - unsecure?
+      require('./lib/callStaticMethod.js')(core, parameters, router); //todo - unsecure?
+
       router.all('*', function (request, response) {
         response.status(404);
         response.json({

@@ -18,6 +18,23 @@ Hunt.extendModel('Article', function(core){
 //this step is very important - bind mongoose model to current mongo database connection
 // and assign it to collection in mongo database
 
+
+  ArticleSchema.statics.doSmth = function(user, payload, callback){
+    callback(null, {
+      'user':user,
+      'payload':payload
+    });
+  };
+
+  ArticleSchema.methods.doSmth = function(user, payload, callback){
+    callback(null, {
+      'article': this,
+      'user':user,
+      'payload':payload
+    });
+  };
+
+
   ArticleSchema.statics.canCreate = function(user, callback){
     if(user){ //only authorized user can create new article
       callback(null, true, 'author');
