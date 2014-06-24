@@ -9,8 +9,7 @@ Parameters
 
 -  `mountPoint` - string, see [http://expressjs.com/4x/api.html#router](http://expressjs.com/4x/api.html#router)
 -  `modelName` - string
--  `ownerId` - parameter, that represents owners' id of this Entity, if it equals request.user.id, that the user authorized is owner
--  `Permissions` - hash, where keys are roles
+
 
 Model requirements
 ==============================
@@ -45,7 +44,7 @@ The `owner` field is one-to-many relation to owners
 ```javascript
 
 ArticleSchema.statics.canCreate = function(user, callback){
-    if(user){ //only authorized user can create new article
+    if(user) { //only authorized user can create new article
       callback(null, true, 'author');
     } else {
       callback(null, false);
@@ -67,9 +66,10 @@ user id as an owner/author of this particular item. For our case - `author`. Def
 ArticleSchema.statics.listFilter = function(user, callback){
     if(user) {
       if(user.root) {
-        callback(null, {}); //root can list all documents!
+        callback(null, {}, ['name','content','author'], ['author']);
+        //root can list all documents, and all document fields, and field of author is populated
       } else {
-        callback(null, {'owner':user._id}); //non root user can see documents, where he/she is an owner
+        callback(null, {'owner':user._id}, ['name','content']); //non root user can see documents, where he/she is an owner
       }
     } else {
       callback(null, false); //non authorized user cannot list anything!
@@ -78,7 +78,7 @@ ArticleSchema.statics.listFilter = function(user, callback){
 
 ```
 
-The `callback` has this syntax function(error, filterObj)
+The `callback` has this syntax function(error, filterObj, arrayOfGettersToShow, arrayOfGettersToPopulate)
 
 4) The model have to have instance method `canRead`, that performs ACL check for this particular document
 

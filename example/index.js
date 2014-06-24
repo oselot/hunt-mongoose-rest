@@ -5,86 +5,85 @@ var hunt = require('hunt'),
     'mongoUrl':'mongodb://localhost/hrw_dev'
   });
 
-Hunt.extendModel('Trophy', function(core){
-  var TrophySchema = new core.mongoose.Schema({
+Hunt.extendModel('Article', function(core){
+  var ArticleSchema = new core.mongoose.Schema({
     'name': {type: String, unique: true},
-    'scored': Boolean,
-    'owner':  { type: core.mongoose.Schema.Types.ObjectId, ref: 'User' }
+    'content': String,
+    'author':  { type: core.mongoose.Schema.Types.ObjectId, ref: 'User' }
   });
 
-  TrophySchema.index({
+  ArticleSchema.index({
     name: 1
   });
 //this step is very important - bind mongoose model to current mongo database connection
 // and assign it to collection in mongo database
-  return core.mongoConnection.model('Trophy', TrophySchema);
+
+  ArticleSchema.statics.canCreate = function(user, callback){
+    if(user){ //only authorized user can create new article
+      callback(null, true, 'author');
+    } else {
+      callback(null, false);
+    }
+  };
+
+  ArticleSchema.statics.listFilter = function(user, callback){
+    if(user) {
+      if(user.root) {
+        callback(null, {}); //root can list all documents!
+      } else {
+        callback(null, {'owner':user._id}); //non root user can see documents, where he/she is an owner
+      }
+    } else {
+      callback(null, false); //non authorized user cannot list anything!
+    }
+  };
+
+  ArticleSchema.methods.canRead = function(user, callback){
+    if(user) {
+      if(user.root) {
+        callback(null, true, ['name','content','owner'], ['owner']); //root can list all documents and all document fields, with populating author
+      } else {
+        callback(null, this.owner === user._id, ['name','content']); //non root user can see documents, where he/she is an owner
+      }
+    } else {
+      callback(null, false); //non authorized user cannot read anything!
+    }
+  };
+
+  ArticleSchema.methods.canEdit = function(user, callback){
+    if(user) {
+      if(user.root) {
+//root can list all documents and all document fields, with populating author
+        callback(null, true, ['name','content','owner']);
+      } else {
+        callback(null, this.owner === user._id, ['name','content']);
+//non root user can edit `name` and `content` of
+//documents, where he/she is an owner
+      }
+    } else {
+      callback(null, false); //non authorized user cannot edit anything!
+    }
+  };
+
+  ArticleSchema.methods.canDelete = function(user, callback){
+    var document = this;
+    if(user) {
+      if(user.root) {
+        callback(null, true); //root can delete every document
+      } else {
+        callback(null, document.owner === user._id);
+//non root user can delete documents, where he/she is an owner
+      }
+    } else {
+      callback(null, false); //non authorized user cannot edit anything!
+    }
+  };
+
+
+  return core.mongoConnection.model('Article', ArticleSchema);
 });
 
-var permissions = {
-    'nobody':{
-      'canAccess':false,
-    },
-    'user':{
-      'canAccess':true,
-      'fieldsToShow':['name','scored'], //fields to show on /api/v1/:modelName
-      'filter': function(parameters, user) {
-         parameters.owner = user.id
-      },
-      'fieldsToRead':['name','scored'], //fields to show on /api/v1/:modelName/:id
-      'fieldsToEdit':['scored'], //fields to be acceppted on POST /api/v1/:modelName or PUT /api/v1/:modelName/:id
-      'canCreate': function(user, cb){
-        cb(null, false);
-      },
-      'canUpdate': function(user, item, cb){
-        cb(null, false);
-      },
-      'canRead':function(user, item, cb){
-        cb(null, true);
-      },
-      'canDelete': function(user, item, cb){
-         cb(null,  (item.owner === user.id) ? true : false);
-      },
-      'preSave': function(user, item, cb){
-          item.owner = user.id;
-          console.log(user.displayName+' updates '+item.id);
-          cb(null, true);
-      },
-      'postSave': function(user, item, cb){
-          console.log(user.displayName+' updated '+item.id);
-          cb(null);
-      }
-    },
-    'root':{
-       'canAccess':false, //it is ignored for root
-       'fieldsToShow':['name','scored','owner'],
-       'fieldsToRead':['name','scored','owner'],
-       'fieldsToEdit':['name','scored','owner'],
-       'filter': function(parameters, user){
-
-        },
-       'canCreate': function(user, cb){
-         cb(null, true);
-       },
-       'canRead':function(user, item, cb){
-         cb(null, true);
-       },
-       'canUpdate': function(user, item, cb){
-         cb(null, true);
-       },
-       'canDelete': function(user, item, cb){
-         cb(null, true);
-       },
-       'preSave': function(user, item, cb){
-          cb(null, true);
-       },
-       'postSave': function(user, item, cb){
-          cb(null);
-       },
-   }
-
-};
-
-hrw(Hunt, { 'modelName': 'Trophy', 'permissions': permissions });
+hrw(Hunt, { 'modelName': 'Article'});
 
 Hunt.once('start', function(evnt){
   Hunt.async.parallel({
@@ -94,19 +93,38 @@ Hunt.once('start', function(evnt){
         'apiKey': Hunt.rack()
       }, cb);
     },
-    'trophy': function(cb){
-      Hunt.model.Trophy.findOneAndUpdate(
-        { 'name': 'Vasya' },
-        { 'name': 'Vasya', 'scored':true },
-        { 'upsert': true },
-        cb);
+    'userNonRoot': function(cb){
+      Hunt.model.User.create({
+        'root':false,
+        'name':{
+          'familyName': 'Васильев',
+          'middleName': 'Алексей',
+          'givenName': 'Артёмович'
+        },
+        'apiKey': Hunt.rack()
+      }, cb);
     }
   },function(error, obj){
     if(error) {
       throw error;
     } else {
-      console.log('Trophy created: #'+obj.trophy.id+' '+obj.trophy.name);
-      console.log('Access API\n http://localhost:3000/api/v1/trophy?huntKey='+obj.userRoot.apiKey);
+      Hunt.model.Article.findOneAndUpdate(
+        { 'name': 'Книжка о хрущике' },
+        {
+          'name': 'Книжка о хрущике',
+          'content':'Мучной хрущик дышит жопой',
+          'owner':obj.userNonRoot._id
+        },
+        { 'upsert': true },
+        function(error, articleCreated){
+          if(error){
+            throw error;
+          } else {
+            console.log('Access API as ROOT\n http://localhost:3000/api/v1/trophy?huntKey='+obj.userRoot.apiKey);
+            console.log('Access API as LIMITED\n user http://localhost:3000/api/v1/article?huntKey='+obj.userNonRoot.apiKey);
+            console.log('Article created', articleCreated);
+          }
+        });
     }
   });
 });
