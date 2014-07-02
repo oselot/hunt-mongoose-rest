@@ -9,6 +9,7 @@ var hunt = require('hunt'),
 describe('Testing REST api as nobody', function () {
   before(function (done) {
     Hunt = hunt({
+      'port': 3001,
       'disableCsrf': true,
       'huntKey': true,
       'mongoUrl': 'mongodb://localhost/hrw_dev'
