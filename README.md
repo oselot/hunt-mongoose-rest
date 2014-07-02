@@ -114,7 +114,7 @@ If this array is omitted, no population is done
 
 ```javascript
 
-ArticleSchema.methods.canEdit = function(user, callback){
+ArticleSchema.methods.canUpdate = function(user, callback){
     if(user) {
       if(user.root) {
         callback(null, true, ['name','content','owner']); //root can list all documents and all document fields, with populating author
