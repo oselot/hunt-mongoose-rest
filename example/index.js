@@ -12,21 +12,29 @@ hrw(Hunt, { 'modelName': 'Article'});
 Hunt.once('start', function (evnt) {
   Hunt.async.parallel({
     'userRoot': function (cb) {
-      Hunt.model.User.create({
-        'root': true,
-        'apiKey': Hunt.rack()
-      }, cb);
+      Hunt.model.User.findOneAndUpdate({
+        'apiKey': 'i_am_root'
+      }, {
+        'root': true
+      }, {
+        'upsert': true
+      },
+      cb);
     },
     'userNonRoot': function (cb) {
-      Hunt.model.User.create({
+      Hunt.model.User.findOneAndUpdate({
+        'apiKey': 'i_am_prep'
+      }, {
         'root': false,
         'name': {
           'familyName': 'Васильев',
           'middleName': 'Алексей',
           'givenName': 'Артёмович'
-        },
-        'apiKey': Hunt.rack()
-      }, cb);
+        }
+      }, {
+        'upsert': true
+      },
+      cb);
     }
   }, function (error, obj) {
     if (error) {

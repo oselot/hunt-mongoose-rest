@@ -89,7 +89,7 @@ ArticleSchema.methods.canRead = function(user, callback){
       if(user.root) {
         callback(null, true, ['name','content','owner'], ['owner']); //root can list all fields, with populating author
       } else {
-        callback(null, this.owner === user._id, ['name','content']); //non root user can see documents, where he/she is an owner
+        callback(null, this.owner == user.id, ['name','content']); //non root user can see documents, where he/she is an owner
       }
     } else {
       callback(null, false); //non authorized user cannot read anything!
@@ -119,7 +119,7 @@ ArticleSchema.methods.canUpdate = function(user, callback){
       if(user.root) {
         callback(null, true, ['name','content','owner']); //root can list all documents and all document fields, with populating author
       } else {
-        callback(null, this.owner === user._id, ['name','content']);
+        callback(null, this.owner == user.id, ['name','content']);
         //non root user can edit `name` and `content` of
         //documents, where he/she is an owner
       }
@@ -142,7 +142,7 @@ ArticleSchema.methods.canDelete = function(user, callback){
       if(user.root) {
         callback(null, true); //root can delete every document
       } else {
-        callback(null, document.owner === user._id);
+        callback(null, document.owner == user.id);
         //non root user can delete documents, where he/she is an owner
       }
     } else {
