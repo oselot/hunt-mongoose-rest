@@ -27,6 +27,7 @@ module.exports = exports = function (Hunt, parameters) {
         });
       });
 
+//error reporting
       router.use(function (error, request, response, next) {
 //http://mongoosejs.com/docs/validation.html
         if (error.name === 'ValidationError') {

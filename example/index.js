@@ -67,7 +67,7 @@ Hunt.extendModel('Article', function(core){
     }
   };
 
-  ArticleSchema.methods.canEdit = function(user, callback){
+  ArticleSchema.methods.canUpdate = function(user, callback){
     if(user) {
       if(user.root) {
 //root can list all documents and all document fields, with populating author
