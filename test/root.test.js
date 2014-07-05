@@ -6,6 +6,7 @@ var hunt = require('hunt'),
   Hunt,
   rootKey = 'i_am_root',
   articleId,
+  bookName = 'Da book'+Date.now(),
   request = require('request');
 
 
@@ -61,7 +62,7 @@ describe('Testing REST api as root', function () {
         'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article',
         'headers': {'huntKey': rootKey},
         'form': {
-          'name': 'Da book'+Date.now(),
+          'name': bookName,
           'content': 'some content',
         },
         'json': true
@@ -72,9 +73,10 @@ describe('Testing REST api as root', function () {
         } else {
           response.statusCode.should.be.equal(201);
           body.status.should.be.equal('Ok');
-          body.data.name.should.be.equal('Da book');
+          body.data.name.should.be.equal(bookName);
           body.data.content.should.be.equal('some content');
           body.data.id.should.be.a.String;
+          response.headers.location.should.be.equal('/api/v1/article/'+body.data.id);
           articleId = body.data.id;
           done();
         }
@@ -93,22 +95,23 @@ describe('Testing REST api as root', function () {
           done(error);
         } else {
           response.statusCode.should.be.equal(200);
+          console.log(body);
           body.status.should.be.equal('Ok');
-          body.data.name.should.be.equal('Da book');
+          body.data.name.should.be.equal(bookName);
           body.data.content.should.be.equal('some content');
           body.data.id.should.be.a.equal(articleId);
+          body.data.author.should.be.a.String;
           done();
         }
       });
   });
-/*/
-  it('returns unauthorized for PUT /:id', function (done) {
+
+  it('Updates content for PUT /:id', function (done) {
     request({
         'method': 'PUT',
-        'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/53b43aded6202872e0e3371f',
+        'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/'+articleId,
         'form': {
-          'name': 'Da book',
-          'content': 'some content'
+          'content': 'some new content'
         },
         'json': true
       },
@@ -116,17 +119,17 @@ describe('Testing REST api as root', function () {
         if (error) {
           done(error);
         } else {
-          response.statusCode.should.be.equal(401);
-          body.status.should.be.equal('Error');
-          body.errors.should.be.an.Array;
-          body.errors.length.should.be.equal(1);
-          body.errors[0].code.should.be.equal(401);
-          body.errors[0].message.should.be.equal('Authorization required!');
+          response.statusCode.should.be.equal(200);
+          body.status.should.be.equal('Ok');
+          body.data.name.should.be.equal(bookName);
+          body.data.content.should.be.equal('some new content');
+          body.data.id.should.be.a.equal(articleId);
+          body.data.author.should.be.a.String;
           done();
         }
       });
   });
-
+/*/
   it('returns unauthorized for DELETE /:id', function (done) {
     request({
         'method': 'DELETE',

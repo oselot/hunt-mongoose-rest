@@ -1,7 +1,7 @@
 module.exports = exports = function (Hunt, parameters) {
   if (parameters.modelName && Hunt.model[parameters.modelName]) {
 
-    parameters.mountPoint = parameters.mountPoint || '/api/v1/' + parameters.modelName;
+    parameters.mountPoint = (parameters.mountPoint || '/api/v1/' + parameters.modelName).toLowerCase();
     parameters.ownerId = parameters.ownerId || 'owner';
     Hunt.extendRoutes(function (core) {
       var router = core.express.Router();

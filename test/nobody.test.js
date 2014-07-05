@@ -47,22 +47,52 @@ describe('Testing REST api as nobody', function () {
       });
   });
 
-  it('returns unauthorized for GET /:id',  function (done) {
+  it('returns `This API endpoint do not exists!` for some stupid requests',  function (done) {
     request({
-        'method': 'GET',
-        'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/53b43aded6202872e0e3371f',
+        'method': 'POST',
+        'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/someStupidApiEndpointThatDoNotExists',
+        'form': {
+          'name': 'Da book',
+          'content': 'some content'
+        },
         'json': true
       },
       function (error, response, body) {
         if (error) {
           done(error);
         } else {
-          response.statusCode.should.be.equal(401);
+          console.log(body);
+          response.statusCode.should.be.equal(404);
           body.status.should.be.equal('Error');
           body.errors.should.be.an.Array;
           body.errors.length.should.be.equal(1);
-          body.errors[0].code.should.be.equal(401);
-          body.errors[0].message.should.be.equal('Authorization required!');
+          body.errors[0].code.should.be.equal(404);
+          body.errors[0].message.should.be.equal('This API endpoint do not exists!');
+          done();
+        }
+      });
+  });
+
+  it('returns `Method not allowed` for POST /:id',  function (done) {
+    request({
+        'method': 'POST',
+        'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/53b43aded6202872e0e3371f',
+        'form': {
+          'name': 'Da book',
+          'content': 'some content'
+        },
+        'json': true
+      },
+      function (error, response, body) {
+        if (error) {
+          done(error);
+        } else {
+          response.statusCode.should.be.equal(405);
+          body.status.should.be.equal('Error');
+          body.errors.should.be.an.Array;
+          body.errors.length.should.be.equal(1);
+          body.errors[0].code.should.be.equal(405);
+          body.errors[0].message.should.be.equal('Method not allowed!');
           done();
         }
       });
@@ -92,7 +122,7 @@ describe('Testing REST api as nobody', function () {
         }
       });
   });
-
+/*/
   it('returns unauthorized for PUT /:id',  function (done) {
     request({
         'method': 'PUT',
@@ -117,7 +147,8 @@ describe('Testing REST api as nobody', function () {
         }
       });
   });
-
+//*/
+/*/
   it('returns unauthorized for DELETE /:id',  function (done) {
     request({
         'method': 'DELETE',
@@ -138,5 +169,5 @@ describe('Testing REST api as nobody', function () {
         }
       });
   });
-
+//*/
 });
