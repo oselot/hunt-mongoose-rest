@@ -11,8 +11,10 @@ var hunt = require('hunt'),
 
 
 function isArticle(a) {
+  a.id.should.be.a.String
   a.name.should.be.a.String;
   a.content.should.be.a.String;
+  a.author.id.should.be.a.String;
 }
 
 
@@ -95,12 +97,11 @@ describe('Testing REST api as root', function () {
           done(error);
         } else {
           response.statusCode.should.be.equal(200);
-          console.log(body);
           body.status.should.be.equal('Ok');
           body.data.name.should.be.equal(bookName);
           body.data.content.should.be.equal('some content');
           body.data.id.should.be.a.equal(articleId);
-          body.data.author.should.be.a.String;
+          body.data.author.id.should.be.a.String;
           done();
         }
       });

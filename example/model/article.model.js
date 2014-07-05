@@ -40,9 +40,9 @@ module.exports = exports = function (core) {
   ArticleSchema.statics.listFilter = function (user, callback) {
     if (user) {
       if (user.root) {
-        callback(null, {}); //root can list all documents!
+        callback(null, {}, ['id', 'name', 'content', 'author'], ['author']); //root can list all documents!
       } else {
-        callback(null, {'author': user._id}); //non root user can see documents, where he/she is an owner
+        callback(null, {'author': user._id}, ['id', 'name', 'content']); //non root user can see documents, where he/she is an owner
       }
     } else {
       callback(null, false); //non authorized user cannot list anything!
@@ -53,7 +53,7 @@ module.exports = exports = function (core) {
     if (user) {
       if (user.root) {
 //root can list all documents and all document fields, with populating author
-        callback(null, true, ['id', 'name', 'content', 'owner'], ['owner']);
+        callback(null, true, ['id', 'name', 'content', 'author'], ['author']);
       } else {
 //non root user can see documents, where he/she is an owner
         callback(null, (this.author == user.id), ['id', 'name', 'content']);
