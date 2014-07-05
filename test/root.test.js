@@ -312,7 +312,6 @@ describe('Testing REST api as root', function () {
         if (error) {
           done(error);
         } else {
-          console.log(body);
           response.statusCode.should.be.equal(200);
           body.status.should.be.equal('deleted');
           request({
