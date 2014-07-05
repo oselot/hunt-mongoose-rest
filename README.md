@@ -87,9 +87,9 @@ The `callback` has this syntax function(error, filterObj, arrayOfGettersToShow, 
 ArticleSchema.methods.canRead = function(user, callback){
     if(user) {
       if(user.root) {
-        callback(null, true, ['name','content','owner'], ['owner']); //root can list all fields, with populating author
+        callback(null, true, ['name','content','author'], ['author']); //root can list all fields, with populating author
       } else {
-        callback(null, this.owner == user.id, ['name','content']); //non root user can see documents, where he/she is an owner
+        callback(null, this.author == user.id, ['name','content']); //non root user can see documents, where he/she is an owner
       }
     } else {
       callback(null, false); //non authorized user cannot read anything!
