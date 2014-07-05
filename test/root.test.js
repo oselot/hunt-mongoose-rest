@@ -29,7 +29,7 @@ describe('Testing REST api as root', function () {
 
     Hunt.extendModel('Article', model);
 
-    hrw(Hunt, { 'modelName': 'Article', 'methods':['doSmth'], 'statics': 'doSmth'});
+    hrw(Hunt, { 'modelName': 'Article', 'methods': ['doSmth'], 'statics': 'doSmth'});
 
     Hunt.once('start', function (evnt) {
       populateDb(Hunt, done);
