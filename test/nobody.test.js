@@ -61,7 +61,6 @@ describe('Testing REST api as nobody', function () {
         if (error) {
           done(error);
         } else {
-          console.log(body);
           response.statusCode.should.be.equal(404);
           body.status.should.be.equal('Error');
           body.errors.should.be.an.Array;
@@ -160,7 +159,6 @@ describe('Testing REST api as nobody', function () {
         if (error) {
           done(error);
         } else {
-          console.log(body);
           response.statusCode.should.be.equal(404);
           body.status.should.be.equal('Error');
           body.errors.should.be.an.Array;
