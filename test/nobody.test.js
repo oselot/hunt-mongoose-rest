@@ -17,7 +17,7 @@ describe('Testing REST api as nobody', function () {
 
     Hunt.extendModel('Article', model);
 
-    hrw(Hunt, { 'modelName': 'Article'});
+    hrw(Hunt, { 'modelName': 'Article', 'methods':['doSmth'], 'statics': 'doSmth'});
 
     Hunt.once('start', function (evnt) {
       populateDb(Hunt, done);
@@ -47,7 +47,7 @@ describe('Testing REST api as nobody', function () {
       });
   });
 
-  it('returns `This API endpoint do not exists!` for some stupid requests',  function (done) {
+  it('returns `This API endpoint do not exists!` for some stupid requests', function (done) {
     request({
         'method': 'POST',
         'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/someStupidApiEndpointThatDoNotExists',
@@ -73,7 +73,7 @@ describe('Testing REST api as nobody', function () {
       });
   });
 
-  it('returns `Method not allowed` for POST /:id',  function (done) {
+  it('returns `Method not allowed` for POST /:id', function (done) {
     request({
         'method': 'POST',
         'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/53b43aded6202872e0e3371f',
@@ -98,7 +98,7 @@ describe('Testing REST api as nobody', function () {
       });
   });
 
-  it('returns unauthorized for POST /',  function (done) {
+  it('returns unauthorized for POST /', function (done) {
     request({
         'method': 'POST',
         'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article',
@@ -122,14 +122,15 @@ describe('Testing REST api as nobody', function () {
         }
       });
   });
-/*/
-  it('returns unauthorized for PUT /:id',  function (done) {
+
+
+  it('Allows to call existant static method', function (done) {
     request({
-        'method': 'PUT',
-        'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/53b43aded6202872e0e3371f',
+        'method': 'POST',
+        'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/method',
         'form': {
-          'name': 'Da book',
-          'content': 'some content'
+          'method': 'doSmth',
+          'payload': 'Da book',
         },
         'json': true
       },
@@ -137,37 +138,86 @@ describe('Testing REST api as nobody', function () {
         if (error) {
           done(error);
         } else {
-          response.statusCode.should.be.equal(401);
-          body.status.should.be.equal('Error');
-          body.errors.should.be.an.Array;
-          body.errors.length.should.be.equal(1);
-          body.errors[0].code.should.be.equal(401);
-          body.errors[0].message.should.be.equal('Authorization required!');
+          response.statusCode.should.be.equal(202);
+          body.body.payload.should.be.equal('Da book');
           done();
         }
       });
   });
-//*/
-/*/
-  it('returns unauthorized for DELETE /:id',  function (done) {
+
+
+  it('Disallows to call non existant static method', function (done) {
     request({
-        'method': 'DELETE',
-        'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/53b43aded6202872e0e3371f',
+        'method': 'POST',
+        'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/method',
+        'form': {
+          'method': 'doNotDoSmth',
+          'payload': 'Da book',
+        },
         'json': true
       },
       function (error, response, body) {
         if (error) {
           done(error);
         } else {
-          response.statusCode.should.be.equal(401);
+          console.log(body);
+          response.statusCode.should.be.equal(404);
           body.status.should.be.equal('Error');
           body.errors.should.be.an.Array;
           body.errors.length.should.be.equal(1);
-          body.errors[0].code.should.be.equal(401);
-          body.errors[0].message.should.be.equal('Authorization required!');
+          body.errors[0].code.should.be.equal(404);
+          body.errors[0].message.should.be.equal('Unknown static method!');
           done();
         }
       });
   });
-//*/
+
+  /*/
+   it('returns unauthorized for PUT /:id',  function (done) {
+   request({
+   'method': 'PUT',
+   'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/53b43aded6202872e0e3371f',
+   'form': {
+   'name': 'Da book',
+   'content': 'some content'
+   },
+   'json': true
+   },
+   function (error, response, body) {
+   if (error) {
+   done(error);
+   } else {
+   response.statusCode.should.be.equal(401);
+   body.status.should.be.equal('Error');
+   body.errors.should.be.an.Array;
+   body.errors.length.should.be.equal(1);
+   body.errors[0].code.should.be.equal(401);
+   body.errors[0].message.should.be.equal('Authorization required!');
+   done();
+   }
+   });
+   });
+   //*/
+  /*/
+   it('returns unauthorized for DELETE /:id',  function (done) {
+   request({
+   'method': 'DELETE',
+   'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/53b43aded6202872e0e3371f',
+   'json': true
+   },
+   function (error, response, body) {
+   if (error) {
+   done(error);
+   } else {
+   response.statusCode.should.be.equal(401);
+   body.status.should.be.equal('Error');
+   body.errors.should.be.an.Array;
+   body.errors.length.should.be.equal(1);
+   body.errors[0].code.should.be.equal(401);
+   body.errors[0].message.should.be.equal('Authorization required!');
+   done();
+   }
+   });
+   });
+   //*/
 });

@@ -16,7 +16,7 @@ module.exports = exports = function (core) {
   ArticleSchema.statics.doSmth = function (user, payload, callback) {
     callback(null, {
       'user': user,
-      'payload': payload
+      'body': payload
     });
   };
 
@@ -24,7 +24,7 @@ module.exports = exports = function (core) {
     callback(null, {
       'article': this,
       'user': user,
-      'payload': payload
+      'body': payload
     });
   };
 

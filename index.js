@@ -3,6 +3,8 @@ module.exports = exports = function (Hunt, parameters) {
 
     parameters.mountPoint = (parameters.mountPoint || '/api/v1/' + parameters.modelName).toLowerCase();
     parameters.ownerId = parameters.ownerId || 'owner';
+    parameters.statics = parameters.statics || [];
+    parameters.methods = parameters.methods || [];
     Hunt.extendRoutes(function (core) {
       var router = core.express.Router();
       require('./lib/listAll.js')(core, parameters, router);

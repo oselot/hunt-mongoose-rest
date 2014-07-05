@@ -29,7 +29,7 @@ describe('Testing REST api as root', function () {
 
     Hunt.extendModel('Article', model);
 
-    hrw(Hunt, { 'modelName': 'Article'});
+    hrw(Hunt, { 'modelName': 'Article', 'methods':['doSmth'], 'statics': 'doSmth'});
 
     Hunt.once('start', function (evnt) {
       populateDb(Hunt, done);
@@ -192,13 +192,62 @@ describe('Testing REST api as root', function () {
         if (error) {
           done(error);
         } else {
-          console.log(body);
           response.statusCode.should.be.equal(404);
           body.status.should.be.equal('Error');
           body.errors.should.be.an.Array;
           body.errors.length.should.be.equal(1);
           body.errors[0].code.should.be.equal(404);
           body.errors[0].message.should.be.equal('This API endpoint do not exists!');
+          done();
+        }
+      });
+  });
+
+  it('Allows to call existant static method', function (done) {
+    request({
+        'method': 'POST',
+        'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/method',
+        'headers': {'huntKey': rootKey},
+        'form': {
+          'method': 'doSmth',
+          'payload': 'Da book',
+        },
+        'json': true
+      },
+      function (error, response, body) {
+        if (error) {
+          done(error);
+        } else {
+          response.statusCode.should.be.equal(202);
+          body.body.payload.should.be.equal('Da book');
+          body.user.id.should.be.a.String;
+          done();
+        }
+      });
+  });
+
+  it('Disallows to call non existant static method', function (done) {
+    request({
+        'method': 'POST',
+        'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/method',
+        'headers': {'huntKey': rootKey},
+        'form': {
+          'method': 'doNotDoSmth',
+          'payload': 'Da book',
+        },
+        'json': true
+      },
+      function (error, response, body) {
+        if (error) {
+          done(error);
+        } else {
+          console.log(body);
+          response.statusCode.should.be.equal(404);
+          body.status.should.be.equal('Error');
+          body.errors.should.be.an.Array;
+          body.errors.length.should.be.equal(1);
+          body.errors[0].code.should.be.equal(404);
+          body.errors[0].message.should.be.equal('Unknown static method!');
           done();
         }
       });
