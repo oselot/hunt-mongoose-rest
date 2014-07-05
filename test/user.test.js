@@ -278,7 +278,7 @@ describe('Testing REST api as user', function () {
         'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/53b43aded6202872e0e3371f/method',
         'headers': {'huntKey': rootKey},
         'form': {
-          'method': 'doNotDoSmth',
+          'method': 'doSmth',
           'payload': 'Da book',
         },
         'json': true
