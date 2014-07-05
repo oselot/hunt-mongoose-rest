@@ -124,7 +124,7 @@ describe('Testing REST api as nobody', function () {
   });
 
 
-  it('Allows to call existant static method', function (done) {
+  it('Allows to call existent static method', function (done) {
     request({
         'method': 'POST',
         'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/method',
@@ -146,7 +146,7 @@ describe('Testing REST api as nobody', function () {
   });
 
 
-  it('Disallows to call non existant static method', function (done) {
+  it('Disallows to call non existent static method', function (done) {
     request({
         'method': 'POST',
         'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/method',
