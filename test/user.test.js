@@ -14,6 +14,7 @@ function isArticle(a) {
   a.id.should.be.a.String
   a.name.should.be.a.String;
   a.content.should.be.a.String;
+  should.not.exists(a.author);
 }
 
 
