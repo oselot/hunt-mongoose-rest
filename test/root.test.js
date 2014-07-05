@@ -128,11 +128,11 @@ describe('Testing REST api as root', function () {
           body.data.id.should.be.a.equal(articleId);
           body.data.author.id.should.be.a.String;
           request({
-            'method': 'GET',
-            'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/' + articleId,
-            'headers': {'huntKey': rootKey},
-            'json': true
-          },
+              'method': 'GET',
+              'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/' + articleId,
+              'headers': {'huntKey': rootKey},
+              'json': true
+            },
             function (error, response, body) {
               if (error) {
                 done(error);
@@ -150,7 +150,7 @@ describe('Testing REST api as root', function () {
       });
   });
 
-  it('returns `Method not allowed` for POST /:id',  function (done) {
+  it('returns `Method not allowed` for POST /:id', function (done) {
     request({
         'method': 'POST',
         'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/53b43aded6202872e0e3371f',
@@ -176,7 +176,7 @@ describe('Testing REST api as root', function () {
       });
   });
 
-  it('returns `This API endpoint do not exists!` for some stupid requests',  function (done) {
+  it('returns `This API endpoint do not exists!` for some stupid requests', function (done) {
     request({
         'method': 'POST',
         'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/someStupidApiEndpointThatDoNotExists',
@@ -254,7 +254,7 @@ describe('Testing REST api as root', function () {
   it('Allows to call existent instance method', function (done) {
     request({
         'method': 'POST',
-        'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/'+articleId+'/method',
+        'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/' + articleId + '/method',
         'headers': {'huntKey': rootKey},
         'form': {
           'method': 'doSmth',
@@ -278,7 +278,7 @@ describe('Testing REST api as root', function () {
   it('Disallows to call non existent instance method', function (done) {
     request({
         'method': 'POST',
-        'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/'+articleId+'/method',
+        'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/' + articleId + '/method',
         'headers': {'huntKey': rootKey},
         'form': {
           'method': 'doNotDoSmth',
@@ -301,26 +301,41 @@ describe('Testing REST api as root', function () {
       });
   });
 
-  /*/
-   it('returns unauthorized for DELETE /:id', function (done) {
-   request({
-   'method': 'DELETE',
-   'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/53b43aded6202872e0e3371f',
-   'json': true
-   },
-   function (error, response, body) {
-   if (error) {
-   done(error);
-   } else {
-   response.statusCode.should.be.equal(401);
-   body.status.should.be.equal('Error');
-   body.errors.should.be.an.Array;
-   body.errors.length.should.be.equal(1);
-   body.errors[0].code.should.be.equal(401);
-   body.errors[0].message.should.be.equal('Authorization required!');
-   done();
-   }
-   });
-   });
-   //*/
+  it('Allows to delete article by DELETE /:id', function (done) {
+    request({
+        'method': 'DELETE',
+        'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/'+articleId,
+        'headers': {'huntKey': rootKey},
+        'json': true
+      },
+      function (error, response, body) {
+        if (error) {
+          done(error);
+        } else {
+          console.log(body);
+          response.statusCode.should.be.equal(200);
+          body.status.should.be.equal('deleted');
+          request({
+              'method': 'GET',
+              'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/' + articleId,
+              'headers': {'huntKey': rootKey},
+              'json': true
+            },
+            function (error, response, body) {
+              if (error) {
+                done(error);
+              } else {
+                response.statusCode.should.be.equal(404);
+                body.status.should.be.equal('Error');
+                body.errors.should.be.an.Array;
+                body.errors.length.should.be.equal(1);
+                body.errors[0].code.should.be.equal(404);
+                body.errors[0].message.should.be.equal('Not found!');
+                done();
+              }
+            });
+        }
+      });
+  });
+
 });
