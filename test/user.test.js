@@ -272,6 +272,32 @@ describe('Testing REST api as user', function () {
       });
   });
 
+  it('Disallows to call method of non existent instance', function (done) {
+    request({
+        'method': 'POST',
+        'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/53b43aded6202872e0e3371f/method',
+        'headers': {'huntKey': rootKey},
+        'form': {
+          'method': 'doNotDoSmth',
+          'payload': 'Da book',
+        },
+        'json': true
+      },
+      function (error, response, body) {
+        if (error) {
+          done(error);
+        } else {
+          response.statusCode.should.be.equal(404);
+          body.status.should.be.equal('Error');
+          body.errors.should.be.an.Array;
+          body.errors.length.should.be.equal(1);
+          body.errors[0].code.should.be.equal(404);
+          body.errors[0].message.should.be.equal('Not found!');
+          done();
+        }
+      });
+  });
+
   it('Disallows to call non existent instance method', function (done) {
     request({
         'method': 'POST',
