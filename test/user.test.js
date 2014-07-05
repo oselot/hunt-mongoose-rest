@@ -14,7 +14,6 @@ function isArticle(a) {
   a.id.should.be.a.String
   a.name.should.be.a.String;
   a.content.should.be.a.String;
-  a.author.id.should.be.a.String;
 }
 
 
@@ -101,7 +100,6 @@ describe('Testing REST api as user', function () {
           body.data.name.should.be.equal(bookName);
           body.data.content.should.be.equal('some content');
           body.data.id.should.be.a.equal(articleId);
-          body.data.author.id.should.be.a.String;
           done();
         }
       });
@@ -126,7 +124,6 @@ describe('Testing REST api as user', function () {
           body.data.name.should.be.equal(bookName);
           body.data.content.should.be.equal('some new content');
           body.data.id.should.be.a.equal(articleId);
-          body.data.author.id.should.be.a.String;
           request({
               'method': 'GET',
               'url': 'http://localhost:' + Hunt.config.port + '/api/v1/article/' + articleId,
@@ -142,7 +139,6 @@ describe('Testing REST api as user', function () {
                 body.data.name.should.be.equal(bookName);
                 body.data.content.should.be.equal('some new content');
                 body.data.id.should.be.a.equal(articleId);
-                body.data.author.id.should.be.a.String;
                 done();
               }
             });

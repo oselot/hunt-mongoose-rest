@@ -69,7 +69,7 @@ module.exports = exports = function (core) {
 //root can list all documents and all document fields, with populating author
         callback(null, true, ['name', 'content', 'owner']);
       } else {
-        callback(null, this.owner == user.id, ['name', 'content']);
+        callback(null, this.author == user.id, ['name', 'content']);
 //non root user can edit `name` and `content` of
 //documents, where he/she is an owner
       }
@@ -84,7 +84,7 @@ module.exports = exports = function (core) {
       if (user.root) {
         callback(null, true); //root can delete every document
       } else {
-        callback(null, document.owner == user.id);
+        callback(null, document.author == user.id);
 //non root user can delete documents, where he/she is an owner
       }
     } else {
