@@ -4,11 +4,16 @@ Config
 Abstract Mongoose to REST interface CRUD. In MVC paradigm  this module is a way
 to generate view (as JSON object) and controller for this particular model.
 It is nodejs implementation of awesome module of (http://www.symfony-project.org/plugins/sfDoctrineRestGeneratorPlugin)
+This work is inspired by [http://www.restapitutorial.com/](http://www.restapitutorial.com/)
+
 
 Parameters
 
--  `mountPoint` - string, see [http://expressjs.com/4x/api.html#router](http://expressjs.com/4x/api.html#router)
--  `modelName` - string
+-  `mountPoint` - string, see [http://expressjs.com/4x/api.html#router](http://expressjs.com/4x/api.html#router), default is `/api/v1/modelName`
+-  `modelName` - string, see [http://huntjs.herokuapp.com/documentation/model.html](http://huntjs.herokuapp.com/documentation/model.html)
+-  `statics` - array of [static Active Record methods](http://mongoosejs.com/docs/guide.html#statics) exported to rest api
+-  `methods` - array of [instance Active Record methods](http://mongoosejs.com/docs/guide.html#methods) exported to rest api
+
 
 
 Model requirements
@@ -167,73 +172,3 @@ where
 `request.user` is current user performing the request
 `request.body` is parameters send to this method
 and `payload` is response to user
-
-
-Example (old)
-==============================
-
-```javascript
-
-   {
-    "nobody":{
-      "canAccess":false,
-    },
-    "user":{
-        "canAccess":true,
-        "fieldsToShow":['name','notes'], //fields to show on /api/v1/:modelName
-        "filter": function(parameters, user) {
-           parameters.owner = user.id
-        },
-        "fieldsToRead":['name','notes'], //fields to show on /api/v1/:modelName/:id
-        "fieldsToEdit":['notes'], //fields to be acceppted on POST /api/v1/:modelName or PUT /api/v1/:modelName/:id
-        "canCreate": function(user, cb){
-          cb(null, false);
-        },
-        "canUpdate": function(user, item, cb){
-          cb(null, false);
-        },
-       "canRead":function(user, item, cb){
-          cb(null, true);
-       },
-        "canDelete": function(user, item, cb){
-           cb(null,  (item.owner === user.id) ? true : false);
-        },
-        "preSave": function(user, item, cb){
-            item.owner = user.id;
-            console.log(user.displayName+' updates '+item.id);
-            cb(null, true);
-        },
-        "postSave": function(user, item, cb){
-            console.log(user.displayName+' updated '+item.id);
-            cb(null);
-        },
-    },
-    "root":{
-       "canAccess":false, //it is ignored for root
-       "fieldsToShow":['name','notes','owner'],
-       "fieldsToRead":['name','notes','owner'],
-       "fieldsToEdit":['name','notes','owner'],
-       "filter": false,
-       "canCreate": function(user, cb){
-         cb(null, true);
-       },
-       "canRead":function(user, item, cb){
-         cb(null, true);
-       },
-       "canUpdate": function(user, item, cb){
-         cb(null, true);
-       },
-       "canDelete": function(user, item, cb){
-         cb(null, true);
-       },
-       "preSave": function(user, item, cb){
-          cb(null, true);
-       },
-       "postSave": function(user, item, cb){
-          cb(null);
-       },
-   }
-   }
-
-
-```
