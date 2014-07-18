@@ -2,6 +2,7 @@ Hunt-Mongo-REST
 ==============================
 
 [![Build Status](https://travis-ci.org/oselot/hunt-mongoose-rest.svg)](https://travis-ci.org/oselot/hunt-mongoose-rest)
+[![NPM version](https://badge.fury.io/js/hunt-mongoose-rest.svg)](http://badge.fury.io/js/hunt-mongoose-rest)
 
 Abstract Mongoose to REST interface CRUD. In MVC paradigm  this module is a way
 to generate view (as JSON object) and controller for this particular model.
