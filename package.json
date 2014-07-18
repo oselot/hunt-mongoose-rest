@@ -1,5 +1,5 @@
 {
-  "name": "hrw",
+  "name": "hunt-mongoose-rest",
   "version": "0.0.1",
   "description": "HuntJS RESTfull API for mongoosejs models",
   "main": "index.js",
